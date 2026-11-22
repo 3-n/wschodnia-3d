@@ -136,11 +136,34 @@
   <!-- The bar under the message is drawn by style.css from --progress, which main.js raises as the map loads. -->
   <div id="status" role="status" class="progress" aria-busy="true" style="--progress: 0%">Wczytywanie mapy…</div>
   <script>
+    // Analytics (GoatCounter, the snippet before </body>): track("roof-off") counts one event; names are lowercase
+    // kebab-case, category first, from a bounded list (main.js). It never throws: with GoatCounter blocked or not loaded
+    // yet it retries for 20 s and gives up quietly; on the local server it only logs the event (console.debug), since
+    // GoatCounter doesn't count there.
+    window.track = (name, title = "") => {
+      try {
+        if (["localhost", "127.0.0.1"].includes(location.hostname)) return console.debug("[track]", name, title);
+        const attempt = (tries) => {
+          try {
+            if (window.goatcounter?.count) window.goatcounter.count({ path: name, title: title || name, event: true });
+            else if (tries > 0) setTimeout(() => attempt(tries - 1), 500);
+          } catch {}
+        };
+        attempt(40);
+      } catch {}
+    };
+  </script>
+  <script>
     // Without this, a failed load (say, a rejected map token) would just say "loading" forever.
+    let loadErrorTracked = false;
     for (const type of ["error", "unhandledrejection"]) {
       addEventListener(type, (event) => {
         const status = document.getElementById("status");
         if (status.classList.contains("final")) return; // the 3D map has failed for good: see showGraphicsFailure in main.js
+        if (!loadErrorTracked) {
+          loadErrorTracked = true;
+          track("error-load");
+        }
         const error = event.reason ?? event.error;
         const code = error?.statusCode ? `serwer mapy odpowiedział kodem ${error.statusCode}` : null;
         const detail = error?.message ?? code ?? event.message ?? "nieznany błąd";
@@ -152,5 +175,6 @@
     }
   </script>
   <script type="module" src="./main.js"></script>
+  <script data-goatcounter="https://3-n.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </body>
 </html>

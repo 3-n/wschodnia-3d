@@ -213,6 +213,7 @@ function orthophotos() {
 function showGraphicsFailure(error) {
   if (error) console.error(error);
   if (statusEl.classList.contains("final")) return;
+  track("error-webgl"); // analytics: the 3D view couldn't run here (refused, or the context lost)
   setStatus(
     "Nie udało się wyświetlić modelu 3D: ta przeglądarka nie poradziła sobie z grafiką 3D (WebGL) albo ją wyłączyła. " +
       "W tle jest widok ogólny jako zdjęcie. Zamknij przeglądarkę całkowicie i otwórz stronę jeszcze raz albo otwórz ją na innym urządzeniu.",
@@ -496,12 +497,18 @@ scene.postRender.addEventListener(() => {
   }
   if (resetButton.hidden === away) resetButton.hidden = !away;
 });
-resetButton.addEventListener("click", () => goTo(activeView));
+resetButton.addEventListener("click", () => {
+  track("view-reset"); // analytics: people who moved the camera and wanted the view back
+  goTo(activeView);
+});
 function addCameraButton(view) {
   const button = document.createElement("button");
   button.textContent = view.label;
   button.dataset.id = view.id;
-  button.addEventListener("click", () => goTo(view.id));
+  button.addEventListener("click", () => {
+    if (view.id !== activeView) track(`view-switch-${view.id}`, view.label); // analytics: only an actual change
+    goTo(view.id);
+  });
   cameraButtons.append(button);
 }
 site.cameras.forEach(addCameraButton);
@@ -659,19 +666,26 @@ const year = new Date().getFullYear();
 // The defaults, unless the map switch carried a setting over.
 dateInput.value = `${year}-${/^\d\d-\d\d$/.test(switchState?.date) ? switchState.date : DEFAULT_DATE}`;
 timeInput.value = Number.isFinite(switchState?.time) ? switchState.time : DEFAULT_TIME;
+// Analytics names for the date presets (the buttons' data-date).
+const SUN_PRESETS = { "03-20": "equinox", "06-21": "summer", "12-21": "winter" };
 for (const b of dateButtons) {
   b.addEventListener("click", () => {
+    track(`sun-date-${SUN_PRESETS[b.dataset.date] ?? "other"}`);
     dateInput.value = `${year}-${b.dataset.date}`;
     applyTime();
   });
 }
 sunReset.addEventListener("click", () => {
+  track("sun-reset");
   dateInput.value = `${year}-${DEFAULT_DATE}`;
   timeInput.value = DEFAULT_TIME;
   applyTime();
 });
 dateInput.addEventListener("input", applyTime);
 timeInput.addEventListener("input", applyTime);
+// Analytics: "change" comes once a date is picked or the slider let go (not while dragging); never the values.
+dateInput.addEventListener("change", (event) => event.isTrusted && track("sun-date-custom"));
+timeInput.addEventListener("change", (event) => event.isTrusted && track("sun-time-change"));
 applyTime();
 
 // --- map context ----------------------------------------------------------------------
@@ -1132,6 +1146,7 @@ function showProject(show) {
 whenReady(model).then(() => showProject(projectBox.checked));
 surroundingsReady.then(() => showProject(projectBox.checked));
 projectBox.addEventListener("change", (event) => showProject(event.target.checked));
+projectBox.addEventListener("change", (event) => event.isTrusted && track(event.target.checked ? "project-on" : "project-off"));
 
 // --- night (this project): the halls' roof light strips, neon on the mesh screens and the platform lamps ---------------
 // The model's "Night" node is emissive, so it glows whatever the light. The rest goes dark: the photo, the sky, the
@@ -1182,7 +1197,10 @@ async function setNight(on) {
   scene.requestRender();
 }
 const globeBaseColour = scene.globe.baseColor.clone();
-nightBox.addEventListener("change", (event) => setNight(event.target.checked));
+nightBox.addEventListener("change", (event) => {
+  if (event.isTrusted) track(event.target.checked ? "night-on" : "night-off");
+  setNight(event.target.checked);
+});
 whenReady(model).then(() => nightBox.checked && setNight(true));
 if (switchState?.project === false) {
   projectBox.checked = false;
@@ -1252,6 +1270,8 @@ function updateHighlight() {
 }
 
 function openPopup(index) {
+  // analytics: the marker's id from the spec (some 30, a bounded set), its title as the event's title
+  if (index !== null && index !== openMarker) track(`object-open-${markers[index].id}`, markers[index].title);
   openMarker = index;
   info.hidden = index === null;
   if (index !== null) {
@@ -1281,7 +1301,10 @@ function showMarkers(on) {
   if (openMarker !== null && !pinShown(markers[openMarker])) openPopup(null);
   updateHighlight();
 }
-markersToggle.addEventListener("click", () => showMarkers(!markersOn()));
+markersToggle.addEventListener("click", () => {
+  track(markersOn() ? "pins-off" : "pins-on");
+  showMarkers(!markersOn());
+});
 function showRoofs(on) {
   roofsToggle.setAttribute("aria-checked", String(on));
   showProject(projectBox.checked);
@@ -1290,7 +1313,10 @@ function showRoofs(on) {
   updateHighlight();
   scene.requestRender();
 }
-roofsToggle.addEventListener("click", () => showRoofs(!roofsOn()));
+roofsToggle.addEventListener("click", () => {
+  track(roofsOn() ? "roof-off" : "roof-on");
+  showRoofs(!roofsOn());
+});
 // From the map switch. Nothing is pointed at or open yet, and the heads don't exist, so the setting alone will do.
 if (switchState?.markers === false) markersToggle.setAttribute("aria-checked", "false");
 
@@ -1620,6 +1646,16 @@ const heightSettled = mapShown.then(async () => {
 });
 
 // Test hook, used by scripts/shots.mjs and scripts/test_page.mjs.
+// --- analytics: the panel's fold-outs and its one outside link (track() is in index.html) ------------------------------
+// The track colours' key, opened ("Tory według linii": its lines aren't clickable, so the opening is what's counted),
+// and "O modelu", read. Nothing opens them from code, so a toggle is always the user's.
+for (const [id, name] of [["lines-legend", "line-tracks-open"], ["about", "about-open"]]) {
+  const details = document.getElementById(id);
+  details.addEventListener("toggle", () => details.open && track(name));
+}
+// The tender documentation, PKP PLK's page, from the panel's opening paragraph.
+document.querySelector("#panel .lead a")?.addEventListener("click", () => track("link-tender-docs"));
+
 window.app = {
   viewer,
   tileset,
