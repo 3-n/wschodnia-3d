@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Nowa stacja Warszawa Wschodnia: model 3D</title>
+  <meta name="description" content="Projektowane wiaty halowe nad peronami, siedem nowych peronów i przejścia pod torami przebudowanej stacji Warszawa Wschodnia, na trójwymiarowej mapie okolicy.">
+  <!-- The link preview on Facebook and elsewhere. Their crawlers need absolute addresses. preview.jpg comes from
+       scripts/preview_image.mjs. -->
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="pl_PL">
+  <meta property="og:url" content="https://3-n.github.io/wschodnia-3d/">
+  <meta property="og:title" content="Nowa stacja Warszawa Wschodnia: model 3D">
+  <meta property="og:description" content="Projektowane wiaty halowe nad peronami, siedem nowych peronów i przejścia pod torami przebudowanej stacji Warszawa Wschodnia, na trójwymiarowej mapie okolicy.">
+  <meta property="og:image" content="https://3-n.github.io/wschodnia-3d/preview.jpg">
+  <meta property="og:image:type" content="image/jpeg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Model 3D z lotu ptaka: dwie wiaty halowe nad peronami stacji Warszawa Wschodnia, z kolorowymi liniami torów.">
+  <meta name="twitter:card" content="summary_large_image">
+  <script defer src="https://cdn.jsdelivr.net/npm/cesium@1.147.0/Build/Cesium/Cesium.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/cesium@1.147.0/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+  <link href="./style.css" rel="stylesheet">
+  <link rel="icon" href="data:,">
+</head>
+<body>
+  <div id="map" class="loading"></div>
+  <!-- The marked places' pins, placed by main.js each frame. Before the panel, which covers them. -->
+  <div id="pins"></div>
+
+  <details id="panel" open>
+    <summary>
+      <span class="title">Nowa stacja Warszawa Wschodnia</span>
+    </summary>
+    <p class="lead">Projektowana przebudowa stacji Warszawa Wschodnia: dwie otwarte wiaty halowe nad peronami dalekobieżnymi i podmiejskimi, siedem nowych peronów, przejścia pod torami i budynki zaplecza, na trójwymiarowej mapie okolicy. Wizualizacja poglądowa na podstawie <a href="https://platformazakupowa.plk-sa.pl/app/demand/notice/public/42848/details" target="_blank" rel="noopener">dokumentacji przetargowej</a> PKP PLK. Oficjalnych wizualizacji wiat jeszcze nie ma.</p>
+
+    <h2 id="cameras-heading">Widok</h2>
+    <!-- On a phone these move into the title above: see the script after the panel. -->
+    <div id="views">
+      <div id="cameras" class="buttons"></div>
+      <!-- The pins of the marked places, on or off. A button, not a checkbox: inside the title on a phone, a tap on a
+           checkbox's label folds or unfolds the panel in Safari as well. -->
+      <button id="markers-toggle" class="toggle" role="switch" aria-checked="true"><span class="switch" aria-hidden="true"></span>Pokaż oznaczenia</button>
+      <!-- The halls' roofs and girders, on or off, for looking down on the platforms. A button for the same reason. -->
+      <button id="roofs-toggle" class="toggle" role="switch" aria-checked="true"><span class="switch" aria-hidden="true"></span>Pokaż zadaszenie</button>
+    </div>
+    <p class="hint" id="controls-hint"></p>
+
+    <h2 id="maps-heading">Mapa</h2>
+    <div class="buttons" id="maps">
+      <button data-map="google">Google 3D</button>
+      <button data-map="geoportal">Geoportal 2025</button>
+    </div>
+    <p class="hint" id="map-note-google" hidden>Realistyczna, ale sprzed kilku lat: brakuje na niej nowszych budynków.</p>
+    <p class="hint" id="map-note-geoportal" hidden>Aktualne zdjęcie lotnicze oraz uproszczone bryły budynków i drzew, które rzucają cienie.</p>
+
+    <h2>Projekt</h2>
+    <label class="check"><input type="checkbox" id="project" checked> Pokaż projekt (przed i po)</label>
+    <label class="check"><input type="checkbox" id="night"> Noc: oświetlenie stacji</label>
+
+    <details id="lines-legend">
+      <summary><h2>Tory według linii</h2></summary>
+      <!-- The track colours: station.tracks' materials track_<line> in the spec (the brief's colour key). -->
+      <ul class="legend">
+        <li><span class="line-swatch" style="--c:#D7263D"></span>LK2, dalekobieżna: tunel średnicowy – Terespol (na stacji także tor 6, przedłużenie LK902)</li>
+        <li><span class="line-swatch" style="--c:#1B6FD8"></span>LK448, podmiejska: Stadion – Rembertów</li>
+        <li><span class="line-swatch" style="--c:#F28C28"></span>LK9, w stronę Gdańska</li>
+        <li><span class="line-swatch" style="--c:#2E9E4F"></span>LK7, w stronę Lublina (na stacji tory 22 i 23)</li>
+        <li><span class="line-swatch" style="--c:#8E44AD"></span>LK444, nowa estakada (LK7 – LK9)</li>
+        <li><span class="line-swatch" style="--c:#B9875A"></span>tory 3 i 8: linia nr 45 (w opisie projektu: linia nr 6)</li>
+        <li><span class="line-swatch" style="--c:#9AA0A6"></span>pozostałe tory</li>
+      </ul>
+      <p class="hint">Jedna kreska to oś jednego toru. Rozjazdów, sieci trakcyjnej i podsypki nie pokazano. Poza stacją część torów jest szara, bo nie udało się ich przypisać do linii.</p>
+    </details>
+
+    <details id="sun">
+      <summary><h2>Słońce i cienie</h2> <span id="sun-summary"></span></summary>
+      <div class="buttons" id="dates">
+        <button data-date="03-20">Równonoc</button>
+        <button data-date="06-21">Lato</button>
+        <button data-date="12-21">Zima</button>
+        <button id="sun-reset" title="Przywróć domyślne: lato, 15:00" aria-label="Przywróć domyślną datę i godzinę: lato, 15:00">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12A8 8 0 1 0 6.34 6.34"/><path d="M6.34 2.34V6.34H10.34"/></svg>
+        </button>
+      </div>
+      <label class="row">Data <input type="date" id="date"></label>
+      <label class="row">Godzina <output id="time-label"></output></label>
+      <input type="range" id="time" min="240" max="1320" step="5" aria-label="Godzina">
+    </details>
+    <p id="sun-note" class="note" hidden>Słońce jest pod horyzontem.</p>
+
+    <details id="about">
+      <summary>O modelu</summary>
+      <p>Model powstał z projektu budowlanego dołączonego do przetargu PKP PLK: z planów zagospodarowania terenu, planów torów, rysunków architektury i konstrukcji wiat, peronów i przejść. Plany są dopasowane do granic działek z ewidencji gruntów. Położenie jest przybliżone, z dokładnością do ok. 0,5 m.</p>
+      <p>Wiaty odtworzono z rzutu dachu, przekrojów, elewacji i rysunków konstrukcji. Z rysunków pochodzą rozstaw słupów, przęsła, wysokości, kratownice i układ przeszkleń. Szacunkowe są grubości prętów, szczegóły dźwigarów krzyżowych, wygląd szkła z ogniwami fotowoltaicznymi, kolor neonu i układ pasm iluminacji.</p>
+      <p>Tory są pokazane jako kolorowe linie osi, z kolorem według linii kolejowej, bez rozjazdów, szyn i sieci trakcyjnej. Teren pod nowymi torami jest wyrównany do poziomu torowiska. Przejścia pod torami są pod ziemią: widać tylko ich wejścia, zadaszenia i świetlik.</p>
+      <p>Budynki zaplecza, budynki techniczne, windy, wiaty siedziskowe i zejścia na perony to uproszczone bryły w wymiarach z projektu. Budynki z mapy, które projekt przeznacza do rozbiórki, znikają po włączeniu projektu, tak jak drzewa w miejscu nowych obiektów i drzewa oznaczone w projekcie do wycinki. Widać je po wyłączeniu projektu.</p>
+      <p>Fioletowa bryła po wschodniej stronie to projektowana estakada linii nr 444, z tego samego przetargu.</p>
+      <p>Mapa Geoportal: zdjęcie lotnicze GUGiK z 2025 r. na numerycznym modelu terenu GUGiK oraz uproszczone modele 3D budynków (2024 r.) i drzew (2023 r.) GUGiK.</p>
+      <p>Cienie modelu i brył mapy są liczone na żywo. Ciemne plamy na samych zdjęciach mapy to cienie z dnia nalotu i nie zmieniają się z godziną.</p>
+      <p>To nieoficjalna wizualizacja, a nie dokument projektowy.</p>
+    </details>
+  </details>
+  <script>
+    {
+      // Here rather than in main.js, so a phone never shows the panel open and then snapping shut, or the views jumping.
+      const phone = matchMedia("(max-width: 640px)");
+      const panel = document.getElementById("panel");
+      if (phone.matches) panel.open = false;
+      // On a phone the view buttons go in the panel's title, under it, as one row that scrolls sideways (style.css), so
+      // they show above the lead and with the panel folded too (Jarek, 2026-11-07), and the pins' switch with them.
+      // Everything else in a <details> but its <summary> is hidden while it's folded, hence the move. Back in place when
+      // the window widens.
+      const views = document.getElementById("views");
+      const placeViews = () => {
+        if (phone.matches) panel.querySelector(":scope > summary").append(views);
+        else document.getElementById("cameras-heading").after(views);
+      };
+      placeViews();
+      phone.addEventListener("change", placeViews);
+      // In the title, a tap here (between buttons, say) would fold or unfold the panel. The buttons still work.
+      views.addEventListener("click", (event) => event.preventDefault());
+    }
+  </script>
+
+  <!-- Filled by main.js from the marked place clicked: viewer.markers in the spec. -->
+  <div id="info" hidden>
+    <button id="info-close" aria-label="Zamknij">×</button>
+    <h3><span id="info-label" class="pin-label"></span> <span id="info-title"></span></h3>
+    <ul id="info-lines"></ul>
+    <p class="hint" id="info-note" hidden></p>
+  </div>
+  <!-- After #info, so the phone layout can hide it while the popup is open: see style.css. -->
+  <button id="reset-view" hidden>↺ Wróć do widoku</button>
+
+  <!-- The bar under the message is drawn by style.css from --progress, which main.js raises as the map loads. -->
+  <div id="status" role="status" class="progress" aria-busy="true" style="--progress: 0%">Wczytywanie mapy…</div>
+  <script>
+    // Without this, a failed load (say, a rejected map token) would just say "loading" forever.
+    for (const type of ["error", "unhandledrejection"]) {
+      addEventListener(type, (event) => {
+        const status = document.getElementById("status");
+        if (status.classList.contains("final")) return; // the 3D map has failed for good: see showGraphicsFailure in main.js
+        const error = event.reason ?? event.error;
+        const code = error?.statusCode ? `serwer mapy odpowiedział kodem ${error.statusCode}` : null;
+        const detail = error?.message ?? code ?? event.message ?? "nieznany błąd";
+        status.classList.remove("progress");
+        status.removeAttribute("aria-busy");
+        status.textContent = `Nie udało się wczytać strony: ${detail}`;
+        status.hidden = false;
+      });
+    }
+  </script>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>

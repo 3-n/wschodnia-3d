@@ -1,0 +1,210 @@
+html, body, #map { margin: 0; width: 100%; height: 100%; overflow: hidden; }
+body { font: 14px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #1c2024; background: #dfe5e8; }
+
+/* Hidden until the map has something to show: see "show the map" in main.js. Only the canvas, so the credits stay. */
+#map canvas { transition: opacity 0.4s; }
+#map.loading canvas { opacity: 0; }
+#map.loading ~ #status { bottom: 50%; }
+/* When the browser can't draw the map (showGraphicsFailure in main.js): the link preview's picture of the overview, and
+   nothing that belongs to the 3D view. The picture's own credit is cropped off on narrow screens, so it's written here. */
+#map.no-webgl { background: url("preview.jpg") center / cover; position: relative; }
+#map.no-webgl::after {
+  content: "Ortofotomapa, budynki i drzewa 3D: GUGiK, geoportal.gov.pl";
+  position: absolute; right: 0; bottom: 0; padding: 2px 6px; font-size: 11px; background: rgba(255, 255, 255, 0.85);
+}
+#map.no-webgl .cesium-viewer, #map.no-webgl ~ #pins, #map.no-webgl ~ #info, #map.no-webgl ~ #reset-view { display: none; }
+#map.no-webgl ~ #status { bottom: 50%; transform: translate(-50%, 50%); width: 440px; }
+
+#panel, #info, #status {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.94);
+  border-radius: 10px;
+  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.25);
+}
+
+#panel {
+  top: 12px;
+  left: 12px;
+  width: 290px;
+  max-height: calc(100% - 92px);
+  overflow-y: auto;
+  padding: 10px 14px;
+  box-sizing: border-box;
+}
+#panel > summary { cursor: pointer; font-weight: 650; font-size: 15px; }
+#panel .lead { margin: 8px 0 0; }
+#panel a { color: #1f5f99; }
+#panel h2 { font-size: 12px; margin: 14px 0 6px; text-transform: uppercase; letter-spacing: 0.04em; color: #5a6168; }
+
+.buttons { display: flex; flex-wrap: wrap; gap: 5px; }
+.buttons[hidden] { display: none; }
+button {
+  font: inherit;
+  font-size: 13px;
+  padding: 5px 9px;
+  border: 1px solid #c3c8cd;
+  border-radius: 6px;
+  background: #fff;
+  color: inherit;
+  cursor: pointer;
+}
+button:hover { background: #eef1f4; }
+button.active { background: #24313c; border-color: #24313c; color: #fff; }
+button:disabled { color: #a3a9ae; cursor: default; }
+button:disabled:hover { background: #fff; }
+
+/* Back to the default date and time: an arrow turning back, faint while they're already set. */
+#sun-reset { display: inline-flex; align-items: center; padding: 0 7px; }
+#sun-reset svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+
+.row { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+input[type="date"] { font: inherit; padding: 2px 4px; }
+input[type="range"] { width: 100%; margin: 4px 0 0; }
+output { font-variant-numeric: tabular-nums; font-weight: 600; }
+.check { display: flex; gap: 6px; align-items: center; cursor: pointer; }
+.note { margin: 6px 0 0; font-size: 12px; color: #8a4b00; }
+.hint { margin: 6px 0 0; font-size: 12px; color: #5a6168; }
+
+#sun { margin-top: 14px; }
+#sun > summary { cursor: pointer; color: #5a6168; }
+#sun > summary h2 { display: inline; margin: 0; }
+#sun[open] > summary { margin-bottom: 6px; }
+#sun-summary { font-size: 12px; font-variant-numeric: tabular-nums; }
+
+#about { margin-top: 14px; font-size: 12.5px; border-top: 1px solid #e0e3e6; padding-top: 8px; }
+#about summary { cursor: pointer; font-weight: 600; }
+#about p { margin: 6px 0; }
+
+#info { top: 12px; right: 12px; width: 280px; padding: 10px 14px; box-sizing: border-box; }
+#info h3 { margin: 0 24px 6px 0; font-size: 15px; display: flex; gap: 7px; align-items: center; }
+#info ul { margin: 0; padding-left: 18px; }
+#info li + li { margin-top: 4px; }
+#info .hint[hidden] { display: none; }
+#info-close { position: absolute; top: 6px; right: 6px; border: 0; background: none; font-size: 18px; line-height: 1; padding: 2px 6px; }
+
+/* The marked places' pins, as on the site plan: a yellow head over the object with its number or an icon, or a swatch for
+   a surface. main.js places them each frame, and draws the line down from each in the scene. The layer keeps their
+   stacking under the panel and popups. */
+#pins { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+.pin-head, .pin-label {
+  box-sizing: border-box;
+  border: 2px solid #24313c;
+  border-radius: 50%;
+  background: #ffe14d;
+  color: #24313c;
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+}
+.pin-head {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  font-size: 15px;
+  pointer-events: auto;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.4);
+  transition: opacity 0.3s, filter 0.3s;
+}
+.pin-head:hover, .pin-head.lit { background: #24313c; color: #ffe14d; border-color: #ffe14d; }
+.pin-head[hidden] { display: none; }
+.pin-label { display: inline-block; flex: none; width: 22px; height: 22px; padding-top: 2px; font-size: 13px; }
+.pin-head svg, .pin-label svg, .swatch { display: block; width: 16px; height: 16px; margin: auto; }
+.pin-head svg, .pin-label svg { fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.pin-label.icon { display: inline-flex; padding: 0; }
+.pin-label svg, .pin-label .swatch { width: 14px; height: 14px; }
+/* As the legend draws them: the composite deck dark with fine boards, the mineral-resin paving sand-coloured. */
+.swatch { box-sizing: border-box; border: 1.5px solid #24313c; border-radius: 50%; }
+.swatch-deck { background: repeating-linear-gradient(90deg, #30353a 0 1.4px, #7d8388 1.4px 2.8px); }
+.swatch-paving { background: #d4b487 radial-gradient(circle, #8f6d43 0.7px, transparent 1px) 0 0 / 3.5px 3.5px; }
+.pin-head:hover .swatch, .pin-head.lit .swatch { border-color: #ffe14d; }
+/* Behind something in the scene: grey and faint, until pointed at. */
+.pin-head.behind:not(:hover):not(.lit) { opacity: 0.5; filter: grayscale(1); }
+@media (pointer: coarse) {
+  .pin-head { width: 34px; height: 34px; font-size: 17px; }
+  .pin-head svg, .pin-head .swatch { width: 20px; height: 20px; }
+}
+
+#status {
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 14px;
+  font-size: 13px;
+}
+#status[hidden] { display: none; }
+/* The loading bar under "Wczytywanie mapy…": main.js raises --progress. Registered, so the bar glides between steps. */
+@property --progress { syntax: "<percentage>"; inherits: true; initial-value: 0%; }
+/* Drags and the wheel pass through it to the map: it sits over the bottom of the view until the map is sharp. Error
+   messages keep them, for the button one carries. */
+#status.progress { min-width: 220px; font-variant-numeric: tabular-nums; transition: --progress 0.4s ease-out; pointer-events: none; }
+#status.progress::after {
+  content: "";
+  display: block;
+  height: 4px;
+  margin: 6px 0 2px;
+  border-radius: 2px;
+  background: linear-gradient(to right, #24313c var(--progress), #d5dbe0 var(--progress));
+}
+#status { max-width: calc(100% - 48px); box-sizing: border-box; text-align: center; }
+
+/* Back to the chosen view: shown by main.js once the camera has moved away from it. Above the credits. */
+#reset-view { position: absolute; right: 12px; bottom: 40px; padding: 7px 12px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25); }
+#reset-view[hidden] { display: none; }
+
+/* Keep the map's credits and logos readable and clear of the panel. */
+.cesium-viewer-bottom { max-width: 100%; }
+
+/* On a phone the view buttons are in the panel's title (moved there by index.html): one row, scrolling sideways, from
+   edge to edge of the panel so they slide out under its sides. Not bold like the title, and not a toggle like it. */
+#panel > summary #cameras {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  margin: 8px -14px 0;
+  padding: 0 14px 2px;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+#panel > summary #cameras::-webkit-scrollbar { display: none; }
+#panel > summary #cameras button { flex: none; white-space: nowrap; }
+#panel > summary #views { font-weight: 400; cursor: auto; }
+
+/* The pins' and the roofs' switches, under the view buttons: a track that goes dark, as the chosen buttons do, with the knob to the right.
+   Its parts don't take taps, so a tap is always on the button itself. */
+.toggle { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding: 2px 0; border: 0; background: none; font-size: 14px; text-align: left; }
+.toggle:hover { background: none; }
+.toggle > * { pointer-events: none; }
+.toggle .switch { position: relative; flex: none; width: 30px; height: 18px; border-radius: 9px; background: #c3c8cd; transition: background 0.2s; }
+.toggle .switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s;
+}
+.toggle[aria-checked="true"] .switch { background: #24313c; }
+.toggle[aria-checked="true"] .switch::after { transform: translateX(12px); }
+.toggle + .toggle { margin-top: 4px; }
+
+@media (max-width: 640px) {
+  #panel { width: calc(100% - 24px); max-height: 55%; }
+  #cameras-heading { display: none; }
+  #info { top: auto; bottom: 64px; left: 12px; right: 12px; width: auto; }
+  /* The credits can take two lines here, so the button goes where the facts open, and steps aside while they're open. */
+  #reset-view { bottom: 64px; }
+  #info:not([hidden]) ~ #reset-view { display: none; }
+}
+
+/* The track colour key (index.html, #lines-legend). */
+.legend { list-style: none; margin: 4px 0; padding: 0; font-size: 13px; line-height: 1.5; }
+.legend li { display: flex; align-items: center; gap: 8px; }
+.line-swatch { flex: none; width: 22px; height: 5px; border-radius: 2px; background: var(--c); }
+#lines-legend > summary { cursor: pointer; list-style: none; }
+#lines-legend > summary h2 { display: inline; }
