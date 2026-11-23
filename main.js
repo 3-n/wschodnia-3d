@@ -1,5 +1,5 @@
 // Viewer for the project: places model.glb on a 3D map of its surroundings.
-import { config } from "./config.js";
+import { config } from "./config.js?v=ab9329e420";
 
 const params = new URLSearchParams(location.search);
 const isLocal = ["localhost", "127.0.0.1"].includes(location.hostname);
@@ -17,9 +17,9 @@ const useGoogle = contextName === "google";
 const isSmallScreen = matchMedia("(max-width: 640px)").matches;
 
 const [site, siteTrees] = await Promise.all([
-  fetch("./site.json").then((r) => r.json()),
+  fetch("./site.json?v=df04bfad13").then((r) => r.json()),
   // The trees standing where the project paves, from scripts/gugik_surroundings.py. The page works without them.
-  fetch("./site_trees.json")
+  fetch("./site_trees.json?v=894cbf0b3e")
     .then((r) => (r.ok ? r.json() : null))
     .catch(() => null),
 ]);
@@ -1020,7 +1020,7 @@ const classifications = new Map(useGoogle ? markers.filter((m) => m.map).map((m)
 // same surveyed ground (scripts/gugik_surroundings.py). One small file, in the model's frame.
 async function loadSurroundings() {
   const surroundings = await Cesium.Model.fromGltfAsync({
-    url: "./surroundings.glb",
+    url: "./surroundings.glb?v=7a0ca7e304",
     modelMatrix,
     upAxis: Cesium.Axis.Y,
     forwardAxis: Cesium.Axis.X,
@@ -1042,7 +1042,7 @@ async function loadSurroundings() {
 // --- the model ----------------------------------------------------------------------------
 async function loadModel() {
   const model = await Cesium.Model.fromGltfAsync({
-    url: "./model.glb",
+    url: "./model.glb?v=00e727a222",
     modelMatrix,
     // The model is authored in east-north-up. Cesium's default glTF forward axis (+Z) would turn it 90 degrees.
     upAxis: Cesium.Axis.Y,
@@ -1165,7 +1165,7 @@ const dayShadows = viewer.shadows;
 let nightModel = null;
 async function loadNight() {
   if (nightModel) return nightModel;
-  nightModel = await Cesium.Model.fromGltfAsync({ url: "./night.glb", modelMatrix, upAxis: Cesium.Axis.Y, forwardAxis: Cesium.Axis.X, shadows: Cesium.ShadowMode.DISABLED });
+  nightModel = await Cesium.Model.fromGltfAsync({ url: "./night.glb?v=d7d608c320", modelMatrix, upAxis: Cesium.Axis.Y, forwardAxis: Cesium.Axis.X, shadows: Cesium.ShadowMode.DISABLED });
   nightModel.show = false;
   scene.primitives.add(nightModel);
   whenReady(nightModel).then(() => showProject(projectBox.checked)); // its "Night roof" node, with the roofs switch
