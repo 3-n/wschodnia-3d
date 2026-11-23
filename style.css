@@ -170,8 +170,11 @@ output { font-variant-numeric: tabular-nums; font-weight: 600; }
 #panel > summary #cameras::-webkit-scrollbar { display: none; }
 #panel > summary #cameras button { flex: none; white-space: nowrap; }
 #panel > summary #views { font-weight: 400; cursor: auto; }
+/* Under them, the switches side by side, wrapping when the row is full (Jarek, 2026-11-24). */
+#panel > summary #switches { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 8px; }
+#panel > summary #switches .toggle { margin-top: 0; white-space: nowrap; }
 
-/* The pins' and the roofs' switches, under the view buttons: a track that goes dark, as the chosen buttons do, with the knob to the right.
+/* The pins', the roofs' and the night's switches, under the view buttons: a track that goes dark, as the chosen buttons do, with the knob to the right.
    Its parts don't take taps, so a tap is always on the button itself. */
 .toggle { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding: 2px 0; border: 0; background: none; font-size: 14px; text-align: left; }
 .toggle:hover { background: none; }

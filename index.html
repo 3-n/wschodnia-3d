@@ -38,11 +38,16 @@
     <!-- On a phone these move into the title above: see the script after the panel. -->
     <div id="views">
       <div id="cameras" class="buttons"></div>
+      <!-- The switches: a column here, one row that wraps on a phone (style.css). -->
+      <div id="switches">
       <!-- The pins of the marked places, on or off. A button, not a checkbox: inside the title on a phone, a tap on a
            checkbox's label folds or unfolds the panel in Safari as well. -->
-      <button id="markers-toggle" class="toggle" role="switch" aria-checked="true"><span class="switch" aria-hidden="true"></span>Pokaż oznaczenia</button>
+      <button id="markers-toggle" class="toggle" role="switch" aria-checked="true"><span class="switch" aria-hidden="true"></span>Oznaczenia</button>
       <!-- The halls' roofs and girders, on or off, for looking down on the platforms. A button for the same reason. -->
-      <button id="roofs-toggle" class="toggle" role="switch" aria-checked="true"><span class="switch" aria-hidden="true"></span>Pokaż zadaszenie</button>
+      <button id="roofs-toggle" class="toggle" role="switch" aria-checked="true"><span class="switch" aria-hidden="true"></span>Dachy</button>
+      <!-- Night: the station's lights on a dark map. Here with the other two so it's found (Jarek, 2026-11-23). -->
+      <button id="night-toggle" class="toggle" role="switch" aria-checked="false"><span class="switch" aria-hidden="true"></span>Dzień/Noc</button>
+      </div>
     </div>
     <p class="hint" id="controls-hint"></p>
 
@@ -56,7 +61,6 @@
 
     <h2>Projekt</h2>
     <label class="check"><input type="checkbox" id="project" checked> Pokaż projekt (przed i po)</label>
-    <label class="check"><input type="checkbox" id="night"> Noc: oświetlenie stacji</label>
 
     <details id="lines-legend">
       <summary><h2>Tory według linii</h2></summary>
@@ -108,7 +112,7 @@
       const panel = document.getElementById("panel");
       if (phone.matches) panel.open = false;
       // On a phone the view buttons go in the panel's title, under it, as one row that scrolls sideways (style.css), so
-      // they show above the lead and with the panel folded too (Jarek, 2026-11-07), and the pins' switch with them.
+      // they show above the lead and with the panel folded too (Jarek, 2026-11-07), and the switches with them.
       // Everything else in a <details> but its <summary> is hidden while it's folded, hence the move. Back in place when
       // the window widens.
       const views = document.getElementById("views");

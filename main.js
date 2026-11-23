@@ -583,6 +583,7 @@ function switchMap(name) {
       // From the page, as above: a failed Google map offers this switch before the rest of this file has run.
       markers: document.getElementById("markers-toggle").getAttribute("aria-checked") === "true",
       roofs: document.getElementById("roofs-toggle").getAttribute("aria-checked") === "true",
+      night: document.getElementById("night-toggle").getAttribute("aria-checked") === "true",
     }),
   );
   location.href = url;
@@ -1105,11 +1106,12 @@ function reportRefusedTiles(tileset) {
 
 // --- before and after ------------------------------------------------------------------------
 const projectBox = document.getElementById("project");
-const nightBox = document.getElementById("night");
+const nightToggle = document.getElementById("night-toggle");
+const nightOn = () => nightToggle.getAttribute("aria-checked") === "true";
 // What "Pokaż projekt" hides: the model's groups from blender/build.py, whose names scripts/check_model.py checks. Not
 // "Existing", the tężnia and its paving, which are already there, nor "Backing", which belongs to the Google map.
 const PROJECT_NODES = ["Building", "Site", "Furniture", "Trees"];
-// This project: "Pokaż zadaszenie" off hides the halls' roofs, girders and what hangs from them (the "Roof" node, and
+// This project: "Dachy" off hides the halls' roofs, girders and what hangs from them (the "Roof" node, and
 // "Night roof" in night.glb), so the platforms can be seen from above; only the branched columns stay.
 const roofsToggle = document.getElementById("roofs-toggle");
 const roofsOn = () => roofsToggle.getAttribute("aria-checked") === "true";
@@ -1121,7 +1123,7 @@ function showProject(show) {
     for (const name of PROJECT_NODES) model.getNode(name).show = show;
     model.getNode("Roof").show = show && roofsOn();
   }
-  if (nightModel) nightModel.show = show && nightBox.checked;
+  if (nightModel) nightModel.show = show && nightOn();
   if (nightModel?.ready) nightModel.getNode("Night roof").show = roofsOn();
   const cuts = tileset?.clippingPolygons;
   if (cuts) {
@@ -1197,11 +1199,15 @@ async function setNight(on) {
   scene.requestRender();
 }
 const globeBaseColour = scene.globe.baseColor.clone();
-nightBox.addEventListener("change", (event) => {
-  if (event.isTrusted) track(event.target.checked ? "night-on" : "night-off");
-  setNight(event.target.checked);
+nightToggle.addEventListener("click", () => {
+  const on = !nightOn();
+  track(on ? "night-on" : "night-off");
+  nightToggle.setAttribute("aria-checked", String(on));
+  setNight(on);
 });
-whenReady(model).then(() => nightBox.checked && setNight(true));
+// From the map switch, as the other two.
+if (switchState?.night === true) nightToggle.setAttribute("aria-checked", "true");
+whenReady(model).then(() => nightOn() && setNight(true));
 if (switchState?.project === false) {
   projectBox.checked = false;
   projectBox.dispatchEvent(new Event("change"));
@@ -1215,11 +1221,11 @@ let openMarker = null;
 
 // A pin goes with its object when the project is hidden, unless that's already there. On the Google map the map's
 // objects on the project's paving go with the cut under it, so there they light up only with the project hidden.
-// "Pokaż oznaczenia" off takes every pin away, and with them the objects' highlight and popups, for just looking at the
+// "Oznaczenia" off takes every pin away, and with them the objects' highlight and popups, for just looking at the
 // model (Jarek, 2026-11-07: busy on a phone).
 const markersToggle = document.getElementById("markers-toggle");
 const markersOn = () => markersToggle.getAttribute("aria-checked") === "true";
-// The roof's own pins go with the roof ("Pokaż zadaszenie").
+// The roof's own pins go with the roof ("Dachy").
 const pinShown = (m) => markersOn() && (!m.project || projectBox.checked) && (!m.roof || roofsOn());
 const objectShown = (m) => pinShown(m) && !(m.map && useGoogle && projectBox.checked);
 
